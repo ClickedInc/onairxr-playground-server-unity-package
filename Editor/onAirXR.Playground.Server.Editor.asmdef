@@ -1,0 +1,13 @@
+{
+    "name": "onAirXR.Playground.Server.Editor",
+    "references": [
+        "onAirXR.Playground.Server"
+    ],
+    "includePlatforms": ["Editor"],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReference": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": []
+}

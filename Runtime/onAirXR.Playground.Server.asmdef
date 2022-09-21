@@ -1,0 +1,16 @@
+{
+    "name": "onAirXR.Playground.Server",
+    "references": [
+        "onAirXR.Server",
+        "UnityEngine.SpatialTracking",
+        "Unity.XR.Management"
+    ],
+    "optionalUnityReference": [],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReference": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": []
+}

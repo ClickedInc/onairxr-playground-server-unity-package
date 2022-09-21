@@ -1,0 +1,26 @@
+{
+    "name": "com.onairxr.playground.server",
+    "version": "2.6.0",
+    "displayName": "onAirXR Playground Server",
+    "description": "",
+    "unity": "2020.1",
+    "author": {
+        "name": "Clicked, Inc.",
+        "email": "contact@clicked.co.kr",
+        "url": "https://www.clicked.co.kr"
+    },
+    "keywords": [
+        "vr",
+        "xr",
+        "reality"
+    ],
+    "dependencies": {
+        "com.unity.xr.management": "4.2.0",
+        "com.onairxr.server": "2.6.0"
+    },
+    "samples": [{
+        "displayName": "onAirXR Town",
+        "description": "",
+        "path": "Samples/onAirXRTown"
+    }]
+}

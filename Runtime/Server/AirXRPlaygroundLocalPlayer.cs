@@ -76,6 +76,10 @@ namespace onAirXR.Playground.Server {
             camera = head.GetComponent<Camera>();
             cameraTransform = head.transform;
 
+            if (head.GetComponent<AudioListener>() == null) {
+                head.AddComponent<AudioListener>();
+            }
+
             addTrackedPoseDriver(cameraTransform, TrackedPoseDriver.DeviceType.GenericXRDevice, TrackedPoseDriver.TrackedPose.Center);
             addTrackedPoseDriver(leftHandAnchor, TrackedPoseDriver.DeviceType.GenericXRController, TrackedPoseDriver.TrackedPose.LeftPose);
             addTrackedPoseDriver(rightHandAnchor, TrackedPoseDriver.DeviceType.GenericXRController, TrackedPoseDriver.TrackedPose.RightPose);

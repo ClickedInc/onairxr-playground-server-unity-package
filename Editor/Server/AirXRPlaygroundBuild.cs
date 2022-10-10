@@ -18,7 +18,7 @@ namespace onAirXR.Playground.Server.Editor {
 
             private ContentDescription _contentDesc;
 
-            [MenuItem("onAirXR/Playground/Build...")]
+            [MenuItem("onAirXR/Playground/Build...", false, 0)]
             public static void ShowWindow() {
                 GetWindow<BuilderWindow>("onAirXR Playground Build");
             }
@@ -252,11 +252,11 @@ namespace onAirXR.Playground.Server.Editor {
             }
 
             private string[] _allCommands = new string[] {
-            "Play",
-            "Pause",
-            "Stop",
-            "Next"
-        };
+                "Play",
+                "Pause",
+                "Stop",
+                "Next"
+            };
         }
 
         private class Styles {

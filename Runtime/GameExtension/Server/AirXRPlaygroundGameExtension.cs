@@ -5,12 +5,14 @@
  ***********************************************************/
 
 using System;
+using System.IO;
 using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.Assertions;
 using UnityEngine.SceneManagement;
 using LiteNetLib;
 using LiteNetLib.Utils;
+using onAirXR.Server;
 
 namespace onAirXR.Playground.Server {
     public abstract class AirXRPlaygroundGameExtension : AirXRPlaygroundExtension, AirXRPlaygroundGameClient.Delegate {
@@ -37,6 +39,18 @@ namespace onAirXR.Playground.Server {
             if (playground.mode != AirXRPlayground.Mode.Observer) { return; }
 
             AirXRPlaygroundGameClient.SendCommand(command, argument);
+        }
+
+        public override void ProcessProfileData(string path) {
+            if (File.Exists(path) == false) { return; }
+
+            if (AirXRPlaygroundGameClient.SendProfileData(path)) {
+                File.Delete(path);
+            } 
+        }
+
+        public override void ProcessQueryResponse(string statement, string body) {
+            AirXRPlaygroundGameClient.ProcessQueryResponse(statement, body);
         }
 
         // implements AirXRPlaygroundExtension
@@ -123,6 +137,14 @@ namespace onAirXR.Playground.Server {
             _instance?.sendCommand(command, argument);
         }
 
+        public static bool SendProfileData(string path) {
+            return _instance?.sendProfileData(path) ?? false;
+        }
+
+        public static void ProcessQueryResponse(string statement, string body) {
+            _instance?.processQueryResponse(statement, body);
+        }
+
         public static void LoadScene(string scene) {
             _instance?.loadScene(scene);
         }
@@ -142,6 +164,10 @@ namespace onAirXR.Playground.Server {
         private NetManager _client;
         private NetDataWriter _dataWriter = new NetDataWriter();
         private string _stateToUpdateOnConfigure;
+        private AirXRPlaygroundGameSessionState _sessionState = new AirXRPlaygroundGameSessionState();
+        private FileStream _sessionDataFile;
+
+        private string tempDirectory => Application.persistentDataPath;
 
         private AirXRPlaygroundGameClient() {
             var listener = new EventBasedNetListener();
@@ -215,6 +241,42 @@ namespace onAirXR.Playground.Server {
             sendMessage(_client.ConnectedPeerList[0], JsonUtility.ToJson(new AirXRPlaygroundGameCommandMessage(command, argument)));
         }
 
+        private bool sendProfileData(string path) {
+            if (_client.ConnectedPeersCount == 0) { return false; }
+
+            const int MaxPayloadSize = 1200;
+
+            var peer = _client.ConnectedPeerList[0];
+            var filename = Path.GetFileName(path);
+            var buffer = new byte[MaxPayloadSize];
+            var total = 0L;
+
+            using (var stream = File.OpenRead(path)) {
+                var read = stream.Read(buffer, 0, MaxPayloadSize);
+                while (read > 0) {
+                    var begin = total == 0;
+                    total += read;
+                    var end = total == stream.Length;
+
+                    sendProfileDataPartial(peer, filename, begin, end, buffer, 0, read);
+
+                    read = stream.Read(buffer, 0, MaxPayloadSize);
+                }
+            }
+
+            return true;
+        }
+
+        private void processQueryResponse(string statement, string body) {
+            if (statement.StartsWith("check-session-data ")) {
+                _sessionState.sessionDataName = body;
+
+                if (_client.ConnectedPeersCount > 0) {
+                    sendSessionState(_client.ConnectedPeerList[0]);
+                }
+            }
+        }
+
         private async void loadScene(string scene) {
             if (_role != "director") { return; }
 
@@ -270,6 +332,17 @@ namespace onAirXR.Playground.Server {
 
         private void onNetworkReceive(NetPeer peer, NetPacketReader reader, DeliveryMethod deliveryMethod) {
             try {
+                var fcc = reader.PeekString(4);
+                switch (fcc) {
+                    case AirXRPlaygroundGameBinaryMessage.FCCSessionData:
+                        if (_role == "player") {
+                            onPlayerSessionDataReceived(peer, reader);
+                        }
+                        return;
+                    default:
+                        break;
+                }
+
                 var json = reader.GetString();
                 var message = JsonUtility.FromJson<AirXRPlaygroundGameMessage>(json);
 
@@ -358,6 +431,50 @@ namespace onAirXR.Playground.Server {
                     }
                     SceneManager.LoadScene(msgLoadScene.GetScene());
                     break;
+                case AirXRPlaygroundGameMessage.TypeSessionRequestState:
+                    sendSessionState(peer);
+                    break;
+                case AirXRPlaygroundGameMessage.TypeSessionConfigure:
+                    handleSessionConfigureMessage(peer, json);
+                    break;
+                case AirXRPlaygroundGameMessage.TypeSessionCheckSessionData:
+                    handleSessionCheckSessionDataMessage(peer, json);
+                    break;
+                case AirXRPlaygroundGameMessage.TypeSessionPlay:
+                    handleSessionPlayMessage(peer, json);
+                    break;
+                case AirXRPlaygroundGameMessage.TypeSessionStop:
+                    handleSessionStopMessage(peer);
+                    break;
+                case AirXRPlaygroundGameMessage.TypeSessionStartProfile:
+                    handleSessionStartProfile(peer, json);
+                    break;
+                case AirXRPlaygroundGameMessage.TypeSessionStopProfile:
+                    handleSessionStopProfile(peer);
+                    break;
+            }
+        }
+
+        private void onPlayerSessionDataReceived(NetPeer peer, NetPacketReader reader) {
+            reader.GetString(4); // skip FCC
+
+            var filename = reader.GetString();
+            var begin = reader.GetBool();
+            var end = reader.GetBool();
+            var data = reader.GetRemainingBytes();
+
+            if (begin) {
+                _sessionDataFile = new FileStream(Path.Combine(tempDirectory, filename), FileMode.OpenOrCreate, FileAccess.Write);
+            }
+
+            _sessionDataFile.Write(data, 0, data.Length);
+
+            if (end) {
+                _sessionDataFile.Close();
+                _sessionDataFile.Dispose();
+                _sessionDataFile = null;
+
+                AXRServer.instance.RequestImportSessionData(Path.Combine(tempDirectory, filename));
             }
         }
 
@@ -366,6 +483,91 @@ namespace onAirXR.Playground.Server {
             peer.Send(_dataWriter, DeliveryMethod.ReliableOrdered);
 
             _dataWriter.Reset();
+        }
+
+        private void sendProfileDataPartial(NetPeer peer, string filename, bool begin, bool end, byte[] data, int offset, int length) {
+            _dataWriter.Put(AirXRPlaygroundGameBinaryMessage.FCCProfileData, 4);
+            _dataWriter.Put(filename);
+            _dataWriter.Put(begin);
+            _dataWriter.Put(end);
+            _dataWriter.Put(data, offset, length);
+
+            peer.Send(_dataWriter, DeliveryMethod.ReliableOrdered);
+
+            _dataWriter.Reset();
+        }
+
+        private void handleSessionConfigureMessage(NetPeer peer, string json) {
+            if (AXRServer.instance.connected) {
+                var msg = JsonUtility.FromJson<AirXRPlaygroundGameSessionConfigure>(json);
+
+                _sessionState.minBitrate = msg.GetMinBitrate();
+                _sessionState.startBitrate = msg.GetStartBitrate();
+                _sessionState.maxBitrate = msg.GetMaxBitrate();
+
+                AXRServer.instance.RequestConfigureSession(_sessionState.minBitrate, _sessionState.startBitrate, _sessionState.maxBitrate);
+            }
+
+            sendSessionState(peer);
+        }
+
+        private void handleSessionCheckSessionDataMessage(NetPeer peer, string json) {
+            if (AXRServer.instance.connected) {
+                var msg = JsonUtility.FromJson<AirXRPlaygroundGameSessionCheckSessionData>(json);
+
+                if (string.IsNullOrEmpty(msg.GetSessionDataName()) == false) {
+                    AXRServer.instance.RequestQuery($"check-session-data {msg.GetSessionDataName()}");
+                }
+            }
+        }
+
+        private async void handleSessionPlayMessage(NetPeer peer, string json) {
+            if (AXRServer.instance.isOnStreaming == false && AXRServer.instance.connected) {
+                var msg = JsonUtility.FromJson<AirXRPlaygroundGameSessionPlay>(json);
+
+                AXRServer.instance.RequestPlay(string.IsNullOrEmpty(msg.GetSessionDataName()) == false ? msg.GetSessionDataName() : null);
+
+                await Task.Delay(300);
+            }
+
+            sendSessionState(peer);
+        }
+
+        private async void handleSessionStopMessage(NetPeer peer) {
+            if (AXRServer.instance.isOnStreaming) {
+                AXRServer.instance.RequestStop();
+
+                await Task.Delay(100);
+            }
+
+            sendSessionState(peer);
+        }
+
+        private void handleSessionStartProfile(NetPeer peer, string json) {
+            if (AXRServer.instance.isProfiling == false) {
+                var msg = JsonUtility.FromJson<AirXRPlaygroundGameSessionStartProfile>(json);
+                _sessionState.sessionName = msg.GetSessionName();
+
+                AXRServer.instance.RequestStartProfile(tempDirectory, msg.GetSessionName(), string.IsNullOrEmpty(msg.GetSessionDataName()) == false ? msg.GetSessionDataName() : null);
+            }
+
+            sendSessionState(peer);
+        }
+
+        private void handleSessionStopProfile(NetPeer peer) {
+            if (AXRServer.instance.isProfiling) {
+                AXRServer.instance.RequestStopProfile();
+            }
+
+            sendSessionState(peer);
+        }
+
+        private void sendSessionState(NetPeer peer) {
+            _sessionState.SetState(AXRServer.instance.connected,
+                                   AXRServer.instance.isOnStreaming, 
+                                   AXRServer.instance.isProfiling);
+
+            sendMessage(peer, JsonUtility.ToJson(new AirXRPlaygroundGameSessionUpdateState(_sessionState)));
         }
     }
 }

@@ -21,6 +21,9 @@ namespace onAirXR.Playground.Server {
         protected abstract void OnUpdate();
         protected abstract void OnQuit();
 
+        public virtual void ProcessProfileData(string path) { }
+        public virtual void ProcessQueryResponse(string statement, string body) { }
+
         private void Awake() {
             playground = GetComponent<AirXRPlayground>();
             if (playground == null) {

@@ -24,6 +24,15 @@ namespace onAirXR.Playground.Server {
         public const string TypeLoadScene = "load-scene";
         public const string TypeError = "error";
 
+        public const string TypeSessionRequestState = "session.request-state";
+        public const string TypeSessionUpdateState = "session.update-state";
+        public const string TypeSessionConfigure = "session.configure";
+        public const string TypeSessionCheckSessionData = "session.check-session-data";
+        public const string TypeSessionPlay = "session.play";
+        public const string TypeSessionStop = "session.stop";
+        public const string TypeSessionStartProfile = "session.start-profile";
+        public const string TypeSessionStopProfile = "session.stop-profile";
+
         public AirXRPlaygroundGameMessage(string type) {
             this.type = type;
         }
@@ -101,5 +110,125 @@ namespace onAirXR.Playground.Server {
 
         public AirXRPlaygroundGameErrorCode GetCode() { return (AirXRPlaygroundGameErrorCode)code; }
         public string GetInfo() { return info; }
+    }
+
+    // session
+    [Serializable]
+    public struct AirXRPlaygroundGameSessionState {
+        public enum State { 
+            Disconnected,
+            Stopped,
+            Playing,
+            Profiling
+        }
+
+        public State state;
+        public string sessionName;
+        public ulong minBitrate;
+        public ulong startBitrate;
+        public ulong maxBitrate;
+        public string sessionDataName;
+
+        public void SetState(bool connected, bool playing, bool profiling) {
+            state = profiling ? State.Profiling :
+                    playing ?   State.Playing :
+                    connected ? State.Stopped :
+                                State.Disconnected;
+        }
+    }
+
+    [Serializable]
+    public class AirXRPlaygroundGameSessionRequestState : AirXRPlaygroundGameMessage {
+        public AirXRPlaygroundGameSessionRequestState() : base(TypeSessionRequestState) { }
+    }
+
+    [Serializable]
+    public class AirXRPlaygroundGameSessionUpdateState : AirXRPlaygroundGameMessage {
+        public AirXRPlaygroundGameSessionUpdateState(AirXRPlaygroundGameSessionState state, string source = "") : base(TypeSessionUpdateState) {
+            this.state = state;
+            this.source = source;
+        }
+
+        [SerializeField] private string source;
+        [SerializeField] private AirXRPlaygroundGameSessionState state;
+
+        public string GetSource() => source;
+        public AirXRPlaygroundGameSessionState GetState() => state;
+
+        public void SetSource(string source) {
+            this.source = source;
+        }
+    }
+
+    [Serializable]
+    public class AirXRPlaygroundGameSessionConfigure : AirXRPlaygroundGameMessage {
+        public AirXRPlaygroundGameSessionConfigure(ulong minBitrate, ulong startBitrate, ulong maxBitrate) : base(TypeSessionConfigure) {
+            this.minBitrate = minBitrate;
+            this.startBitrate = startBitrate;
+            this.maxBitrate = maxBitrate;
+        }
+
+        [SerializeField] private ulong minBitrate;
+        [SerializeField] private ulong startBitrate;
+        [SerializeField] private ulong maxBitrate;
+
+        public ulong GetMinBitrate() => minBitrate;
+        public ulong GetStartBitrate() => startBitrate;
+        public ulong GetMaxBitrate() => maxBitrate;
+    }
+
+    [Serializable]
+    public class AirXRPlaygroundGameSessionCheckSessionData : AirXRPlaygroundGameMessage {
+        public AirXRPlaygroundGameSessionCheckSessionData(string sessionDataName) : base(TypeSessionCheckSessionData) {
+            this.sessionDataName = sessionDataName;
+        }
+
+        [SerializeField] private string sessionDataName;
+
+        public string GetSessionDataName() => sessionDataName;
+    }
+
+    [Serializable]
+    public class AirXRPlaygroundGameSessionPlay : AirXRPlaygroundGameMessage {
+        public AirXRPlaygroundGameSessionPlay(string sessionDataName) : base(TypeSessionPlay) {
+            this.sessionDataName = sessionDataName;
+        }
+
+        [SerializeField] private string sessionDataName;
+
+        public string GetSessionDataName() => sessionDataName;
+    }
+
+    [Serializable]
+    public class AirXRPlaygroundGameSessionStop : AirXRPlaygroundGameMessage {
+        public AirXRPlaygroundGameSessionStop() : base(TypeSessionStop) { }
+    }
+
+    [Serializable]
+    public class AirXRPlaygroundGameSessionStartProfile : AirXRPlaygroundGameMessage {
+        public AirXRPlaygroundGameSessionStartProfile(string sessionName, string sessionDataName = null) : base(TypeSessionStartProfile) {
+            this.sessionName = sessionName;
+            this.sessionDataName = sessionDataName;
+        }
+
+        [SerializeField] private string sessionName;
+        [SerializeField] private string sessionDataName;
+
+        public string GetSessionName() => sessionName;
+        public string GetSessionDataName() => sessionDataName;
+
+        public void SetSessionName(string name) {
+            sessionName = name;
+        }
+    }
+
+    [Serializable]
+    public class AirXRPlaygroundGameSessionStopProfile : AirXRPlaygroundGameMessage { 
+        public AirXRPlaygroundGameSessionStopProfile() : base(TypeSessionStopProfile) { }
+    }
+
+    public static class AirXRPlaygroundGameBinaryMessage {
+        public const string FCCProfileData = "pfdt";
+        public const string FCCSessionData = "ssdt";
     }
 }

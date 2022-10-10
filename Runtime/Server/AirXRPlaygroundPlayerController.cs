@@ -152,6 +152,14 @@ namespace onAirXR.Playground.Server {
             player.Activate(false);
         }
 
+        void AXRServer.EventHandler.OnProfileDataReceived(string path) {
+            owner.extension?.ProcessProfileData(path);
+        }
+
+        void AXRServer.EventHandler.OnQueryResponseReceived(string statement, string body) {
+            owner.extension?.ProcessQueryResponse(statement, body);
+        }
+
         void AXRServer.EventHandler.OnConnect(AXRPlayerConfig config) { }
         void AXRServer.EventHandler.OnDisconnect() { }
         void AXRServer.EventHandler.OnUserdataReceived(byte[] data) { }

@@ -46,6 +46,7 @@ namespace onAirXR.Playground.Server {
         public Mode mode => AirXRPlaygroundConfig.config.GetMode();
         public bool usingCustomCamera => Application.isEditor && _mode == Mode.Observer ? _usingCustomCamera : false;
         public AirXRPlaygroundParticipant otherPlayerPrefab => _otherPlayerPrefab ?? _localPlayer;
+        public AirXRPlaygroundExtension extension => GetComponent<AirXRPlaygroundExtension>();
 
         public List<AirXRPlaygroundParticipant> GetParticipants() {
             var result = new List<AirXRPlaygroundParticipant>();

@@ -83,6 +83,15 @@ namespace onAirXR.Playground.Server {
             removeTrackerGroup(member);
         }
 
+        void AXRMulticastManager.EventListener.MemberUserdataReceived(AXRMulticastManager manager, string member, byte subgroup, byte[] data) {
+            if (participants.ContainsKey(member) == false) { return; }
+
+            var participant = participants[member];
+            if (participant == null) { return; }
+
+            owner.OnParticipantUserdataReceived(manager, participant, data);
+        }
+
         void AXRMulticastManager.EventListener.GetInputsPerFrame(AXRMulticastManager manager) {
             var ids = new List<string>(participants.Keys);
             foreach (var id in ids) {

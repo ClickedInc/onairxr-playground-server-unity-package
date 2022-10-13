@@ -47,7 +47,7 @@ namespace onAirXR.Playground.Server {
         public Transform leftHandAnchor { get; private set; }
         public Transform rightHandAnchor { get; private set; }
 
-        public object userdata { get; set; }
+        public object attachment { get; set; }
 
         public bool isLocalPlayer => this is AirXRPlaygroundLocalPlayer;
 

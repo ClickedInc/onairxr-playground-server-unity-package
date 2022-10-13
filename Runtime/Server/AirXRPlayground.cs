@@ -18,6 +18,7 @@ namespace onAirXR.Playground.Server {
             void OnLeaveParticipant(AirXRPlayground playground, AirXRPlaygroundParticipant participant);
             void OnPendParticipantDataPerFrame(AirXRPlayground playground, AXRMulticastManager manager, AirXRPlaygroundLocalPlayer player);
             void OnGetParticipantDataPerFrame(AirXRPlayground playground, AXRMulticastManager manager, AirXRPlaygroundParticipant participant, string member);
+            void OnParticipantUserdataReceived(AirXRPlayground playground, AXRMulticastManager manager, AirXRPlaygroundParticipant participant, byte[] data);
         }
 
         public enum Mode {
@@ -152,6 +153,10 @@ namespace onAirXR.Playground.Server {
 
         public void OnGetParticipantDataPerFrame(AXRMulticastManager manager, AirXRPlaygroundParticipant participant, string member) {
             aDelegate?.OnGetParticipantDataPerFrame(this, manager, participant, member);
+        }
+
+        public void OnParticipantUserdataReceived(AXRMulticastManager manager, AirXRPlaygroundParticipant participant, byte[] data) {
+            aDelegate?.OnParticipantUserdataReceived(this, manager, participant, data);
         }
     }
 }

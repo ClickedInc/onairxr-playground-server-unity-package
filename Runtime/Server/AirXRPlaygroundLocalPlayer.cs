@@ -31,14 +31,18 @@ namespace onAirXR.Playground.Server {
             }
         }
 
-        public void Init(Camera inCamera) {
+        public void SendUserdata(byte[] data, int offset, int length) {
+            AXRMulticastManager.SendUserdata(data, offset, length);
+        }
+
+        internal void Init(Camera inCamera) {
             configurePlayerRig(inCamera);
             Activate(false);
 
             Destroy(inCamera.gameObject);
         }
 
-        public void Activate(bool activate) {
+        internal void Activate(bool activate) {
             if (activate) {
                 userID = AXRServer.instance?.config?.userID ?? "";
             }
@@ -54,7 +58,11 @@ namespace onAirXR.Playground.Server {
             var active = activated;
 
             if (Application.isEditor && active == false) {
+                #if !ENABLE_INPUT_SYSTEM
+
                 simulatePlayerInEditor();
+
+                #endif
             }
             else {
                 AXRUtils.ActivateChildren(stereoHeadAnchor, active && type == Type.Stereo);

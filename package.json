@@ -21,6 +21,6 @@
     "samples": [{
         "displayName": "onAirXR Town",
         "description": "",
-        "path": "Samples/onAirXRTown"
+        "path": "Samples~/onAirXRTown"
     }]
 }

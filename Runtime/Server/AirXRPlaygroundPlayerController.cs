@@ -29,7 +29,7 @@ namespace onAirXR.Playground.Server {
             player.Init(camera);
         }
 
-        public override void Init() {
+        public override void InitAfterUpdate() {
             XRGeneralSettings.Instance.Manager.InitializeLoaderSync();
             XRGeneralSettings.Instance.Manager.StartSubsystems();
         }

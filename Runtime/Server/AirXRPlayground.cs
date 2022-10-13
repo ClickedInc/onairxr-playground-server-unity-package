@@ -5,6 +5,7 @@
  ***********************************************************/
 
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.Assertions;
 using onAirXR.Server;
@@ -72,7 +73,7 @@ namespace onAirXR.Playground.Server {
             AirXRPlaygroundConfig.LoadOnce(_mode, _multicastInEditor);
         }
 
-        private void Start() {
+        private async void Start() {
             if (Application.isPlaying == false) {
                 ensureGameObjectIntegrity(true);
                 return;
@@ -104,6 +105,10 @@ namespace onAirXR.Playground.Server {
             }
 
             _otherPlayerPrefab?.gameObject?.SetActive(false);
+
+            await Task.Yield();
+
+            _controller.InitAfterUpdate();
         }
 
         private void Update() {

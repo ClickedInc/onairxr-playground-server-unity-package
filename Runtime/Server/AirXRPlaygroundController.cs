@@ -60,6 +60,7 @@ namespace onAirXR.Playground.Server {
         }
 
         public virtual void Init() { }
+        public virtual void InitAfterUpdate() { }
 
         public virtual void Cleanup() { }
 

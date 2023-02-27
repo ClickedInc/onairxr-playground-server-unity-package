@@ -5,6 +5,7 @@
  ***********************************************************/
 
 using UnityEngine;
+using UnityEngine.SpatialTracking;
 using UnityEngine.Assertions;
 
 namespace onAirXR.Playground.Server {
@@ -83,11 +84,13 @@ namespace onAirXR.Playground.Server {
 
                         var leftHand = Instantiate(leftHandAnchor.gameObject);
                         leftHand.name = "LeftHandAnchor";
+                        removeTrackedPoseDriver(leftHand);
                         AXRUtils.AttachAndResetToOrigin(leftHand.transform, go.transform);
                         AXRUtils.ActivateChildren(leftHand.transform, true);
 
                         var rightHand = Instantiate(rightHandAnchor.gameObject);
                         rightHand.name = "RightHandAnchor";
+                        removeTrackedPoseDriver(rightHand);
                         AXRUtils.AttachAndResetToOrigin(rightHand.transform, go.transform);
                         AXRUtils.ActivateChildren(rightHand.transform, true);
 
@@ -209,6 +212,13 @@ namespace onAirXR.Playground.Server {
             }
 
             OnUpdate();
+        }
+
+        private void removeTrackedPoseDriver(GameObject go) {
+            var comp = go.GetComponent<TrackedPoseDriver>();
+            if (comp == null) { return; }
+
+            Destroy(comp);
         }
     }
 }

@@ -143,6 +143,8 @@ namespace onAirXR.Playground.Server {
 
             player.Activate(true);
             owner.OnJoinParticipant(player);
+
+            owner.extension?.OnActivate();
         }
 
         void AXRServer.EventHandler.OnDeactivate() {
@@ -150,18 +152,30 @@ namespace onAirXR.Playground.Server {
 
             owner.OnLeaveParticipant(player);
             player.Activate(false);
+
+            owner.extension?.OnDeactivate();
+        }
+
+        void AXRServer.EventHandler.OnConnect(AXRPlayerConfig config) {
+            owner.extension?.OnConnect(config);
+        }
+        
+        void AXRServer.EventHandler.OnDisconnect() {
+            owner.extension?.OnDisconnect();
         }
 
         void AXRServer.EventHandler.OnProfileDataReceived(string path) {
             owner.extension?.ProcessProfileData(path);
         }
 
+        void AXRServer.EventHandler.OnProfileReportReceived(string report) {
+            owner.extension?.ProcessProfileReport(report);
+        }
+
         void AXRServer.EventHandler.OnQueryResponseReceived(string statement, string body) {
             owner.extension?.ProcessQueryResponse(statement, body);
         }
 
-        void AXRServer.EventHandler.OnConnect(AXRPlayerConfig config) { }
-        void AXRServer.EventHandler.OnDisconnect() { }
         void AXRServer.EventHandler.OnUserdataReceived(byte[] data) { }
     }
 }

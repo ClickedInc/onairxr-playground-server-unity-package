@@ -41,12 +41,35 @@ namespace onAirXR.Playground.Server {
             AirXRPlaygroundGameClient.SendCommand(command, argument);
         }
 
+        public override void OnConnect(AXRPlayerConfig config) {
+            AirXRPlaygroundGameClient.SendSessionState();
+        }
+
+        public override void OnActivate() {
+            AirXRPlaygroundGameClient.SendSessionState();
+        }
+
+        public override void OnDeactivate() {
+            AirXRPlaygroundGameClient.SendSessionState();
+        }
+
+        public override void OnDisconnect() {
+            AirXRPlaygroundGameClient.SendSessionState();
+        }
+
         public override void ProcessProfileData(string path) {
             if (File.Exists(path) == false) { return; }
 
             if (AirXRPlaygroundGameClient.SendProfileData(path)) {
                 File.Delete(path);
             } 
+        }
+
+        public override void ProcessProfileReport(string report) {
+            var config = AXRServer.instance.config;
+            if (config == null) { return; }
+
+            AirXRPlaygroundGameClient.SendProfileReport(config, report);
         }
 
         public override void ProcessQueryResponse(string statement, string body) {
@@ -137,8 +160,18 @@ namespace onAirXR.Playground.Server {
             _instance?.sendCommand(command, argument);
         }
 
+        public static void SendSessionState() {
+            if (_instance == null || _instance._client.ConnectedPeersCount <= 0) { return; }
+
+            _instance.sendSessionState(_instance._client.ConnectedPeerList[0]);
+        }
+
         public static bool SendProfileData(string path) {
             return _instance?.sendProfileData(path) ?? false;
+        }
+
+        public static void SendProfileReport(AXRPlayerConfig config, string report) {
+            _instance?.sendProfileReport(config, report);
         }
 
         public static void ProcessQueryResponse(string statement, string body) {
@@ -267,6 +300,13 @@ namespace onAirXR.Playground.Server {
             return true;
         }
 
+        private void sendProfileReport(AXRPlayerConfig config, string report) {
+            if (_client.ConnectedPeersCount == 0) { return; }
+
+            var peer = _client.ConnectedPeerList[0];
+            sendMessage(peer, JsonUtility.ToJson(new AirXRPlaygroundGameSessionProfileReport(report)));
+        }
+
         private void processQueryResponse(string statement, string body) {
             if (statement.StartsWith("check-session-data ")) {
                 _sessionState.sessionDataName = body;
@@ -290,7 +330,7 @@ namespace onAirXR.Playground.Server {
                     await task;
                 }
 
-                SceneManager.LoadScene(scene);
+                SceneManager.LoadSceneAsync(scene);
             }
             catch (Exception e) {
                 Debug.LogErrorFormat("[ERROR] failed to load other scene: {0}: {1}", scene, e);
@@ -563,7 +603,13 @@ namespace onAirXR.Playground.Server {
         }
 
         private void sendSessionState(NetPeer peer) {
-            _sessionState.SetState(AXRServer.instance.connected,
+            var config = AXRServer.instance.connected ? AXRServer.instance.config : null;
+
+            _sessionState.SetState(config?.userID ?? "",
+                                   config != null ? (config.type == AXRPlayerType.Stereoscopic ? "stereo" : "mono") : "",
+                                   config?.videoWidth ?? 0,
+                                   config?.videoHeight ?? 0,
+                                   config != null,
                                    AXRServer.instance.isOnStreaming, 
                                    AXRServer.instance.isProfiling);
 

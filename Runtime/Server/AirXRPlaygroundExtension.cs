@@ -5,6 +5,7 @@
  ***********************************************************/
 
 using UnityEngine;
+using onAirXR.Server;
 
 namespace onAirXR.Playground.Server {
     [RequireComponent(typeof(AirXRPlayground))]
@@ -21,7 +22,12 @@ namespace onAirXR.Playground.Server {
         protected abstract void OnUpdate();
         protected abstract void OnQuit();
 
+        public virtual void OnConnect(AXRPlayerConfig config) { }
+        public virtual void OnActivate() { }
+        public virtual void OnDeactivate() { }
+        public virtual void OnDisconnect() { }
         public virtual void ProcessProfileData(string path) { }
+        public virtual void ProcessProfileReport(string report) { }
         public virtual void ProcessQueryResponse(string statement, string body) { }
 
         private void Awake() {

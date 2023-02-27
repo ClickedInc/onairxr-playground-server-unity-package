@@ -32,6 +32,7 @@ namespace onAirXR.Playground.Server {
         public const string TypeSessionStop = "session.stop";
         public const string TypeSessionStartProfile = "session.start-profile";
         public const string TypeSessionStopProfile = "session.stop-profile";
+        public const string TypeSessionProfileReport = "session.profile-report";
 
         public AirXRPlaygroundGameMessage(string type) {
             this.type = type;
@@ -122,6 +123,10 @@ namespace onAirXR.Playground.Server {
             Profiling
         }
 
+        public string userid;
+        public string displayType;
+        public int videoWidth;
+        public int videoHeight;
         public State state;
         public string sessionName;
         public ulong minBitrate;
@@ -129,7 +134,12 @@ namespace onAirXR.Playground.Server {
         public ulong maxBitrate;
         public string sessionDataName;
 
-        public void SetState(bool connected, bool playing, bool profiling) {
+        public void SetState(string userid, string displayType, int videoWidth, int videoHeight, bool connected, bool playing, bool profiling) {
+            this.userid = userid;
+            this.displayType = displayType;
+            this.videoWidth = videoWidth;
+            this.videoHeight = videoHeight;
+
             state = profiling ? State.Profiling :
                     playing ?   State.Playing :
                     connected ? State.Stopped :
@@ -162,19 +172,22 @@ namespace onAirXR.Playground.Server {
 
     [Serializable]
     public class AirXRPlaygroundGameSessionConfigure : AirXRPlaygroundGameMessage {
-        public AirXRPlaygroundGameSessionConfigure(ulong minBitrate, ulong startBitrate, ulong maxBitrate) : base(TypeSessionConfigure) {
+        public AirXRPlaygroundGameSessionConfigure(ulong minBitrate, ulong startBitrate, ulong maxBitrate, string targetSource) : base(TypeSessionConfigure) {
             this.minBitrate = minBitrate;
             this.startBitrate = startBitrate;
             this.maxBitrate = maxBitrate;
+            this.targetSource = targetSource;
         }
 
         [SerializeField] private ulong minBitrate;
         [SerializeField] private ulong startBitrate;
         [SerializeField] private ulong maxBitrate;
+        [SerializeField] private string targetSource;
 
         public ulong GetMinBitrate() => minBitrate;
         public ulong GetStartBitrate() => startBitrate;
         public ulong GetMaxBitrate() => maxBitrate;
+        public string GetTargetSource() => targetSource;
     }
 
     [Serializable]
@@ -225,6 +238,24 @@ namespace onAirXR.Playground.Server {
     [Serializable]
     public class AirXRPlaygroundGameSessionStopProfile : AirXRPlaygroundGameMessage { 
         public AirXRPlaygroundGameSessionStopProfile() : base(TypeSessionStopProfile) { }
+    }
+
+    [Serializable]
+    public class AirXRPlaygroundGameSessionProfileReport : AirXRPlaygroundGameMessage {
+        public AirXRPlaygroundGameSessionProfileReport(string report, string source = "") : base(TypeSessionProfileReport) {
+            this.report = report;
+            this.source = source;
+        }
+
+        [SerializeField] private string source;
+        [SerializeField] private string report;
+
+        public string GetSource() => source;
+        public string GetReport() => report;
+
+        public void SetSource(string source) {
+            this.source = source;
+        }
     }
 
     public static class AirXRPlaygroundGameBinaryMessage {

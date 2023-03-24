@@ -1,6 +1,6 @@
 {
     "name": "com.onairxr.playground.server",
-    "version": "3.0.0",
+    "version": "3.0.2",
     "displayName": "onAirXR Playground Server",
     "description": "",
     "unity": "2020.1",
@@ -16,7 +16,7 @@
     ],
     "dependencies": {
         "com.unity.xr.management": "4.2.0",
-        "com.onairxr.server": "3.0.0"
+        "com.onairxr.server": "3.0.2"
     },
     "samples": [{
         "displayName": "onAirXR Town",

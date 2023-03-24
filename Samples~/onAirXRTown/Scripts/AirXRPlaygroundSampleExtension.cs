@@ -139,6 +139,10 @@ public class AirXRPlaygroundSampleExtension : AirXRPlaygroundGameExtension {
         aDelegate?.OnCommandForPlayer(this, command, argument);
     }
 
+    protected override void OnMessageReceived(string clientID, int opcode, string data) {
+        Debug.Log($"[onairxr playground] game extension ({clientid}): message received: from = {clientID}, opcode = {opcode}, data = {data}");
+    }
+
     private Task onUpdateGameState(string state) {
         var current = gameState;
         var next = JsonUtility.FromJson<AirXRPlaygroundSampleGameState>(state);
@@ -150,6 +154,7 @@ public class AirXRPlaygroundSampleExtension : AirXRPlaygroundGameExtension {
     private void emulateCommandsInEditor() {
         if (playground.mode != AirXRPlayground.Mode.Observer) { return; }
 
+#if ENABLE_LEGACY_INPUT_MANAGER
         if (Input.GetKeyDown(KeyCode.A)) {
             OnDirectorCommand("play", null);
         }
@@ -162,5 +167,6 @@ public class AirXRPlaygroundSampleExtension : AirXRPlaygroundGameExtension {
         else if (Input.GetKeyDown(KeyCode.N)) {
             OnDirectorCommand("next", null);
         }
+#endif
     }
 }

@@ -23,12 +23,27 @@ namespace onAirXR.Playground.Server {
         protected abstract Task OnPlayerUpdateGameState(string state);
         protected abstract void OnDirectorCommand(string command, string argument);
         protected abstract void OnPlayerCommand(string command, string argument);
+        protected abstract void OnMessageReceived(string clientID, int opcode, string data);
+
+        public override string clientid => AirXRPlaygroundGameClient.id;
 
         public void LoadOtherScene(string scene) {
             if (playground.mode != AirXRPlayground.Mode.Observer) { return; }
             if (string.IsNullOrEmpty(scene) || SceneManager.GetActiveScene().name == scene) { return; }
 
             AirXRPlaygroundGameClient.LoadScene(scene);
+        }
+
+        public void SendMessageTo(string targetClientId, int opcode, string data = null) {
+            if (string.IsNullOrEmpty(clientid) || string.IsNullOrEmpty(targetClientId)) { return; }
+            
+            AirXRPlaygroundGameClient.SendMessageTo(clientid, targetClientId, opcode, data);
+        }
+
+        public void SendMessageToAll(int opcode, string data = null) {
+            if (string.IsNullOrEmpty(clientid)) { return; }
+
+            AirXRPlaygroundGameClient.SendMessageTo(clientid, null, opcode, data);
         }
 
         public void SendUpdateGameState() {
@@ -114,6 +129,10 @@ namespace onAirXR.Playground.Server {
             return null;
         }
 
+        void AirXRPlaygroundGameClient.Delegate.OnMessageReceived(string clientID, int opcode, string data) {
+            OnMessageReceived(clientID, opcode, data);
+        }
+
         void AirXRPlaygroundGameClient.Delegate.OnCommand(string command, string argument) {
             switch (playground.mode) {
                 case AirXRPlayground.Mode.Observer:
@@ -133,10 +152,13 @@ namespace onAirXR.Playground.Server {
             bool OnCheckIfNeedToLoadScene(string state, ref string nextScene);
             Task OnPreLoadScene(string nextScene);
             Task OnUpdateGameState(string state);
+            void OnMessageReceived(string clientID, int opcode, string data);
             void OnCommand(string command, string argument);
         }
 
         private static AirXRPlaygroundGameClient _instance;
+
+        public static string id => _instance?._id;
 
         public static void LoadOnce() {
             if (_instance != null) { return; }
@@ -146,6 +168,10 @@ namespace onAirXR.Playground.Server {
 
         public static bool Configure(Delegate aDelegate, string address, string role) {
             return _instance?.configure(aDelegate, address, role) ?? false;
+        }
+
+        public static void SendMessageTo(string sourceClientId, string targetClientId, int opcode, string data) {
+            _instance?.sendMessageTo(sourceClientId, targetClientId, opcode, data);
         }
 
         public static void SendUpdateGameState() {
@@ -195,6 +221,7 @@ namespace onAirXR.Playground.Server {
         private string _host;
         private int _port;
         private NetManager _client;
+        private string _id;
         private NetDataWriter _dataWriter = new NetDataWriter();
         private string _stateToUpdateOnConfigure;
         private AirXRPlaygroundGameSessionState _sessionState = new AirXRPlaygroundGameSessionState();
@@ -252,6 +279,13 @@ namespace onAirXR.Playground.Server {
                 _stateToUpdateOnConfigure = null;
             }
             sendUpdateGameState();
+        }
+
+        private void sendMessageTo(string sourceClientId, string targetClientId, int opcode, string data) {
+            if (_client.ConnectedPeersCount == 0) { return; }
+
+            sendMessage(_client.ConnectedPeerList[0],
+                        JsonUtility.ToJson(new AirXRPlaygroundGameOpcodeMessage(sourceClientId, targetClientId, opcode, data)));
         }
 
         private void sendUpdateGameState() {
@@ -363,6 +397,7 @@ namespace onAirXR.Playground.Server {
         private async void onPeerDisconnected(NetPeer peer, DisconnectInfo info) {
             Assert.IsTrue(_client.ConnectedPeersCount == 0);
 
+            _id = null;
             await Task.Delay((int)(UnityEngine.Random.Range(1.0f, 1.5f) * 1000));
 
             if (_client.IsRunning == false) { return; }
@@ -409,6 +444,16 @@ namespace onAirXR.Playground.Server {
 
         private async void onDirectorNetworkReceive(NetPeer peer, string type, string json) {
             switch (type) {
+                case AirXRPlaygroundGameMessage.TypeConnected:
+                    var msgConnected = JsonUtility.FromJson<AirXRPlaygroundGameConnectedMessage>(json);
+
+                    _id = msgConnected.GetID();
+                    break;
+                case AirXRPlaygroundGameMessage.TypeOpcode:
+                    var msgOpcode = JsonUtility.FromJson<AirXRPlaygroundGameOpcodeMessage>(json);
+
+                    _delegate.OnMessageReceived(msgOpcode.GetSourceClientID(), msgOpcode.GetOpcode(), msgOpcode.GetData());
+                    break;
                 case AirXRPlaygroundGameMessage.TypeRequestState:
                     sendMessage(peer, JsonUtility.ToJson(new AirXRPlaygroundGameUpdateStateMessage(_delegate.gameState)));
                     break;
@@ -441,6 +486,16 @@ namespace onAirXR.Playground.Server {
         private async void onPlayerNetworkReceive(NetPeer peer, string type, string json) {
             Task task = null;
             switch (type) {
+                case AirXRPlaygroundGameMessage.TypeConnected:
+                    var msgConnected = JsonUtility.FromJson<AirXRPlaygroundGameConnectedMessage>(json);
+
+                    _id = msgConnected.GetID();
+                    break;
+                case AirXRPlaygroundGameMessage.TypeOpcode:
+                    var msgOpcode = JsonUtility.FromJson<AirXRPlaygroundGameOpcodeMessage>(json);
+
+                    _delegate.OnMessageReceived(msgOpcode.GetSourceClientID(), msgOpcode.GetOpcode(), msgOpcode.GetData());
+                    break;
                 case AirXRPlaygroundGameMessage.TypeUpdateState:
                     var msgUpdateState = JsonUtility.FromJson<AirXRPlaygroundGameUpdateStateMessage>(json);
 

@@ -4,6 +4,7 @@
 
  ***********************************************************/
 
+using System.Threading.Tasks;
 using UnityEngine;
 using onAirXR.Server;
 
@@ -21,6 +22,12 @@ namespace onAirXR.Playground.Server {
         protected abstract bool Configure(string address);
         protected abstract void OnUpdate();
         protected abstract void OnQuit();
+
+        public abstract string clientid { get; }
+
+        public async Task WaitForConnected() {
+            while (string.IsNullOrEmpty(clientid)) { await Task.Yield(); }
+        }
 
         public virtual void OnConnect(AXRPlayerConfig config) { }
         public virtual void OnActivate() { }

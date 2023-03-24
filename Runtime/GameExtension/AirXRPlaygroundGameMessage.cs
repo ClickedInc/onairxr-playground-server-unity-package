@@ -6,6 +6,7 @@
 
 using System;
 using UnityEngine;
+using LiteNetLib;
 
 namespace onAirXR.Playground.Server {
     public enum AirXRPlaygroundGameErrorCode {
@@ -17,6 +18,8 @@ namespace onAirXR.Playground.Server {
 
     [Serializable]
     public class AirXRPlaygroundGameMessage {
+        public const string TypeConnected = "connected";
+        public const string TypeOpcode = "opcode";
         public const string TypeCommand = "command";
         public const string TypeRequestState = "request-state";
         public const string TypeUpdateStateWithTimeout = "update-state-with-timeout";
@@ -34,6 +37,8 @@ namespace onAirXR.Playground.Server {
         public const string TypeSessionStopProfile = "session.stop-profile";
         public const string TypeSessionProfileReport = "session.profile-report";
 
+        public static string MakeIdFromPeer(NetPeer peer) => $"{peer.EndPoint.Address}:{peer.EndPoint.Port}";
+
         public AirXRPlaygroundGameMessage(string type) {
             this.type = type;
         }
@@ -42,6 +47,37 @@ namespace onAirXR.Playground.Server {
         [SerializeField] private string type;
 
         public string GetMessageType() { return type; }
+    }
+
+    [Serializable]
+    public class AirXRPlaygroundGameConnectedMessage : AirXRPlaygroundGameMessage {
+        public AirXRPlaygroundGameConnectedMessage(NetPeer peer) : base(TypeConnected) {
+            id = MakeIdFromPeer(peer);
+        }
+
+        [SerializeField] private string id;
+
+        public string GetID() => id;
+    }
+
+    [Serializable]
+    public class AirXRPlaygroundGameOpcodeMessage : AirXRPlaygroundGameMessage {
+        public AirXRPlaygroundGameOpcodeMessage(string sourceClientId, string targetClientId, int opcode, string data = null) : base(TypeOpcode) {
+            sourceid = sourceClientId;
+            targetid = targetClientId;
+            this.opcode = opcode;
+            this.data = data;
+        }
+
+        [SerializeField] private string sourceid;
+        [SerializeField] private string targetid;
+        [SerializeField] private int opcode;
+        [SerializeField] private string data;
+
+        public string GetSourceClientID() => sourceid;
+        public string GetTargetClientID() => targetid;
+        public int GetOpcode() => opcode;
+        public string GetData() => data;
     }
 
     [Serializable]

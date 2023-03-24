@@ -17,6 +17,21 @@ public class AirXRPlaygroundSampleScene : MonoBehaviour, AirXRPlayground.Delegat
     private TextMeshPro _clock;
     private PlayableDirector _director;
     private AirXRPlaygroundLocalPlayer _localPlayer;
+    private InputDevice? _rightController;
+    private bool _lastTriggerDown;
+
+    private InputDevice? rightController {
+        get { 
+            if (_rightController != null) { return _rightController; }
+
+            var devices = new List<InputDevice>();
+            InputDevices.GetDevicesWithCharacteristics(InputDeviceCharacteristics.Controller | InputDeviceCharacteristics.Right, devices);
+            if (devices.Count == 0) { return null; }
+
+            _rightController = devices[0];
+            return _rightController;
+        }
+    }
 
     private void Awake() {
         _clock = transform.Find("Clock")?.GetComponent<TextMeshPro>();
@@ -28,19 +43,31 @@ public class AirXRPlaygroundSampleScene : MonoBehaviour, AirXRPlayground.Delegat
     }
 
     private void Update() {
+        updateClock();
+
+        processControllerInputs();
+    }
+
+    private void updateClock() {
         if (_clock == null || _director == null) { return; }
 
         _clock.text = string.Format("00:{0:D2}", (int)_director.time);
     }
 
-    private void OnFire() {
+    private void processControllerInputs() {
+        if (rightController != null &&
+            rightController.Value.TryGetFeatureValue(CommonUsages.triggerButton, out bool down)) {
+            if (_lastTriggerDown == false && down) {
         var bytes = System.Text.Encoding.UTF8.GetBytes($"Hello! {DateTime.Now.Second}");
         _localPlayer.SendUserdata(bytes, 0, bytes.Length);
     }
+            _lastTriggerDown = down;
+        }
+    }
 
     // implements AirXRPlayground.Delegate
-    void AirXRPlayground.Delegate.OnJoinParticipant(AirXRPlayground playground, AirXRPlaygroundParticipant participant) {
-        Debug.LogFormat("Participant joined: {0}({1}) : userID {2}", participant.name, participant.GetHashCode(), participant.userID);
+    async void AirXRPlayground.Delegate.OnJoinParticipant(AirXRPlayground playground, AirXRPlaygroundParticipant participant) {
+        Debug.Log($"[onairxr playground] participant joined: name = {participant.name}, userid = {participant.userID}, clientid = {participant.clientID}");
 
         if (participant.isLocalPlayer &&
             participant.type == AirXRPlaygroundParticipant.Type.Mono &&
@@ -52,19 +79,46 @@ public class AirXRPlaygroundSampleScene : MonoBehaviour, AirXRPlayground.Delegat
         if (animator != null) {
             participant.attachment = animator;
         }
+
+        var extension = playground.extension as AirXRPlaygroundGameExtension;
+        if (extension != null) {
+            await extension.WaitForConnected();
+
+            extension.SendMessageTo(participant.clientID, 1, $"message from {extension.clientid} to {participant.clientID}");
+            extension.SendMessageToAll(2, $"broadcast message from {extension.clientid} on player join");
+        }
     }
 
     void AirXRPlayground.Delegate.OnLeaveParticipant(AirXRPlayground playground, AirXRPlaygroundParticipant participant) {
-        Debug.LogFormat("Participant left: {0}({1}) : userID {2}", participant.name, participant.GetHashCode(), participant.userID);
+        Debug.Log($"[onairxr playground] participant left: name = {participant.name}, userid = {participant.userID}, clientid = {participant.clientID}");
+    }
+
+    async void AirXRPlayground.Delegate.OnJoinObserver(AirXRPlayground playground, AirXRPlaygroundObserverParticipant observer) {
+        Debug.Log($"[onairxr playground] observer joined: clientid = {observer.clientID}");
+
+        var extension = playground.extension as AirXRPlaygroundGameExtension;
+        if (extension != null) {
+            await extension.WaitForConnected();
+
+            extension.SendMessageTo(observer.clientID, 3, $"message from {extension.clientid} to {observer.clientID}");
+            extension.SendMessageToAll(4, $"broadcast message from {extension.clientid} on observer join");
+        }
+    }
+
+    void AirXRPlayground.Delegate.OnLeaveObserver(AirXRPlayground playground, AirXRPlaygroundObserverParticipant observer) {
+        Debug.Log($"[onairxr playground] observer left: clientid = {observer.clientID}");
     }
 
     void AirXRPlayground.Delegate.OnPendParticipantDataPerFrame(AirXRPlayground playground, AXRMulticastManager manager, AirXRPlaygroundLocalPlayer player) {
-        //var playerStatus = AirXRInput.Get(player.vrcamera, AirXRInput.Button.RThumbstickLeft) ? 1 :
-        //                   AirXRInput.Get(player.vrcamera, AirXRInput.Button.RThumbstickDown) ? 2 :
-        //                   AirXRInput.Get(player.vrcamera, AirXRInput.Button.RThumbstickRight) ? 3 :
-        //                   AirXRInput.Get(player.vrcamera, AirXRInput.Button.RThumbstickUp) ? 4 : 0;
-
         var playerStatus = 0;
+        if (rightController != null && 
+            rightController.Value.TryGetFeatureValue(CommonUsages.primary2DAxis, out Vector2 axis)) {
+            playerStatus = axis.x < -0.5f ? 1 :
+                           axis.y < -0.5f ? 2 :
+                           axis.x > 0.5f ?  3 :
+                           axis.y > 0.5f ?  4 : 
+                                            0;
+        }
 
         manager.PendInputByteStream((byte)AirXRPlaygroundParticipant.InputDevice.UserData, 0, (byte)playerStatus);
         manager.PendInputIntStream((byte)AirXRPlaygroundParticipant.InputDevice.UserData, 1, 10);
@@ -88,15 +142,11 @@ public class AirXRPlaygroundSampleScene : MonoBehaviour, AirXRPlayground.Delegat
         manager.GetInputFloatStream(member, (byte)AirXRPlaygroundParticipant.InputDevice.UserData, 3, ref floatvalue);
 
         (participant.attachment as Animator)?.SetInteger("status", playerStatus);
-
-        Debug.Log($"participant {member} input value: {intvalue}, {uintvalue}, {floatvalue}");
     }
 
     void AirXRPlayground.Delegate.OnParticipantUserdataReceived(AirXRPlayground playground, AXRMulticastManager manager, AirXRPlaygroundParticipant participant, byte[] data) {
-        var textobj = participant.GetComponentInChildren<TextMeshPro>();
-        if (textobj == null) { return; }
-
         var message = System.Text.Encoding.UTF8.GetString(data);
-        textobj.text = message;
+
+        Debug.Log($"[onairxr playground] participant userdata received: {message}");
     }
 }

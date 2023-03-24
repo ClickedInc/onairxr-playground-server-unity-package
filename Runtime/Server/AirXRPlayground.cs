@@ -16,6 +16,8 @@ namespace onAirXR.Playground.Server {
         public interface Delegate {
             void OnJoinParticipant(AirXRPlayground playground, AirXRPlaygroundParticipant participant);
             void OnLeaveParticipant(AirXRPlayground playground, AirXRPlaygroundParticipant participant);
+            void OnJoinObserver(AirXRPlayground playground, AirXRPlaygroundObserverParticipant observer);
+            void OnLeaveObserver(AirXRPlayground playground, AirXRPlaygroundObserverParticipant observer);
             void OnPendParticipantDataPerFrame(AirXRPlayground playground, AXRMulticastManager manager, AirXRPlaygroundLocalPlayer player);
             void OnGetParticipantDataPerFrame(AirXRPlayground playground, AXRMulticastManager manager, AirXRPlaygroundParticipant participant, string member);
             void OnParticipantUserdataReceived(AirXRPlayground playground, AXRMulticastManager manager, AirXRPlaygroundParticipant participant, byte[] data);
@@ -145,6 +147,14 @@ namespace onAirXR.Playground.Server {
 
         public void OnLeaveParticipant(AirXRPlaygroundParticipant participant) {
             aDelegate?.OnLeaveParticipant(this, participant);
+        }
+
+        public void OnJoinObserver(AirXRPlaygroundObserverParticipant observer) {
+            aDelegate?.OnJoinObserver(this, observer);
+        }
+
+        public void OnLeaveObserver(AirXRPlaygroundObserverParticipant observer) {
+            aDelegate?.OnLeaveObserver(this, observer);
         }
 
         public void OnPendLocalPlayerDataPerFrame(AXRMulticastManager manager, AirXRPlaygroundLocalPlayer player) {

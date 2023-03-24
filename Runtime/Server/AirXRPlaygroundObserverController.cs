@@ -33,6 +33,14 @@ namespace onAirXR.Playground.Server {
             camera.gameObject.SetActive(false);
         }
 
+        public override void InitAfterUpdate() {
+            AXRMulticastManager.Join();
+        }
+
+        public override void Cleanup() {
+            AXRMulticastManager.Leave();
+        }
+
         // implements AirXRPlaygroundController
         protected override void OnJoinParticipant(string id, AirXRPlaygroundParticipant participant) {
             _viewMode?.OnJoinParticipant(id, participant);
@@ -51,8 +59,14 @@ namespace onAirXR.Playground.Server {
         }
 
         protected override bool OnMulticastPendInputsPerFrame(AXRMulticastManager manager) {
-            // do nothing
-            return false;
+            manager.PendInputByteStream((byte)AirXRPlaygroundParticipant.InputDevice.Description, (byte)AirXRPlaygroundParticipant.DescriptionControl.Type, (byte)AirXRPlaygroundParticipant.Type.Observer);
+
+            if (string.IsNullOrEmpty(owner.extension?.clientid) == false) {
+                manager.PendInputString((byte)AirXRPlaygroundParticipant.InputDevice.Description,
+                                        (byte)AirXRPlaygroundParticipant.DescriptionControl.ExtensionClientID,
+                                        owner.extension.clientid);
+            }
+            return true;
         }
 
         private struct ActiveView {

@@ -50,6 +50,14 @@ namespace onAirXR.Playground.Server {
             owner.OnLeaveParticipant(participant);
         }
 
+        protected override void OnJoinObserver(string id, AirXRPlaygroundObserverParticipant observer) {
+            owner.OnJoinObserver(observer);
+        }
+
+        protected override void OnLeaveObserver(string id, AirXRPlaygroundObserverParticipant observer) {
+            owner.OnLeaveObserver(observer);
+        }
+
         protected override void OnMulticastPostGetInputsPerFrame(AXRMulticastManager manager) { }
 
         protected override bool OnMulticastPendInputsPerFrame(AXRMulticastManager manager) {
@@ -71,13 +79,17 @@ namespace onAirXR.Playground.Server {
 
         private void pendStereoPlayerInputs(AXRMulticastManager manager, Matrix4x4 playerLocalToOwnerLocal) {
             manager.PendInputByteStream((byte)AirXRPlaygroundParticipant.InputDevice.Description, (byte)AirXRPlaygroundParticipant.DescriptionControl.Type, (byte)AirXRPlaygroundParticipant.Type.Stereo);
+
             if (string.IsNullOrEmpty(player.userID) == false) {
-                try {
-                    manager.PendInputByteStream((byte)AirXRPlaygroundParticipant.InputDevice.Description,
-                                                (byte)AirXRPlaygroundParticipant.DescriptionControl.UserID,
-                                                byte.Parse(player.userID));
-                }
-                catch (Exception) { }
+                manager.PendInputString((byte)AirXRPlaygroundParticipant.InputDevice.Description,
+                                        (byte)AirXRPlaygroundParticipant.DescriptionControl.UserID,
+                                        player.userID);
+            }
+
+            if (string.IsNullOrEmpty(owner.extension?.clientid) == false) {
+                manager.PendInputString((byte)AirXRPlaygroundParticipant.InputDevice.Description,
+                                        (byte)AirXRPlaygroundParticipant.DescriptionControl.ExtensionClientID,
+                                        owner.extension.clientid);
             }
 
             manager.PendInputPose((byte)AirXRPlaygroundParticipant.InputDevice.HeadTracker, (byte)AXRHeadTrackerControl.Pose,
@@ -119,13 +131,17 @@ namespace onAirXR.Playground.Server {
 
         private void pendMonoPlayerInputs(AXRMulticastManager manager, Matrix4x4 playerLocalToOwnerLocal) {
             manager.PendInputByteStream((byte)AirXRPlaygroundParticipant.InputDevice.Description, (byte)AirXRPlaygroundParticipant.DescriptionControl.Type, (byte)AirXRPlaygroundParticipant.Type.Mono);
+
             if (string.IsNullOrEmpty(player.userID) == false) {
-                try {
-                    manager.PendInputByteStream((byte)AirXRPlaygroundParticipant.InputDevice.Description,
-                                                (byte)AirXRPlaygroundParticipant.DescriptionControl.UserID,
-                                                byte.Parse(player.userID));
-                }
-                catch (Exception) { }
+                manager.PendInputString((byte)AirXRPlaygroundParticipant.InputDevice.Description,
+                                        (byte)AirXRPlaygroundParticipant.DescriptionControl.UserID,
+                                        player.userID);
+            }
+
+            if (string.IsNullOrEmpty(owner.extension?.clientid) == false) {
+                manager.PendInputString((byte)AirXRPlaygroundParticipant.InputDevice.Description,
+                                        (byte)AirXRPlaygroundParticipant.DescriptionControl.ExtensionClientID,
+                                        owner.extension.clientid);
             }
 
             manager.PendInputPose((byte)AirXRPlaygroundParticipant.InputDevice.HeadTracker, (byte)AXRHeadTrackerControl.Pose,

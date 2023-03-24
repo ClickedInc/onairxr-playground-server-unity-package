@@ -30,7 +30,7 @@ namespace onAirXR.Playground.Server {
                     var id = string.Format("Emulated-{0}", ++number);
                     _controller.AddParticipant(id);
 
-                    var instantiated = _controller.GetParticipant(id, participant.type, "emulated", prefab);
+                    var instantiated = _controller.GetParticipant(id, participant.type, "emulated", "", prefab);
                     _spots[number] = participant.spot;
 
                     instantiated.transform.parent = owner.transform;

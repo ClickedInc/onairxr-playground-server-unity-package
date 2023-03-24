@@ -22,8 +22,11 @@ namespace onAirXR.Playground.Server {
 
         public enum DescriptionControl : byte {
             Type = 0,
-            Group = 1,
             UserID = 1,
+            ExtensionClientID = 2,
+
+            // for trackers
+            Group = 1,
             DeviceCount = 2
         }
 
@@ -31,6 +34,7 @@ namespace onAirXR.Playground.Server {
             Stereo = 0,
             Mono = 1,
             Tracker = 2,
+            Observer = 3,
 
             Unknown
         }
@@ -42,6 +46,7 @@ namespace onAirXR.Playground.Server {
         }
 
         public string userID { get; protected set; }
+        public string clientID { get; private set; }
         public Transform stereoHeadAnchor { get; private set; }
         public Transform monoHeadAnchor { get; private set; }
         public Transform trackerAnchor { get; private set; }
@@ -72,7 +77,7 @@ namespace onAirXR.Playground.Server {
             }
         }
 
-        public AirXRPlaygroundParticipant Instantiate(Type type, string userID) {
+        public AirXRPlaygroundParticipant Instantiate(Type type, string userID, string extensionClientID) {
             switch (type) {
                 case Type.Stereo: {
                         var go = new GameObject("Participant - " + gameObject.name);
@@ -96,6 +101,7 @@ namespace onAirXR.Playground.Server {
 
                         var result = go.AddComponent<AirXRPlaygroundParticipant>();
                         result.userID = userID;
+                        result.clientID = extensionClientID;
 
                         return result;
                     }
@@ -109,6 +115,7 @@ namespace onAirXR.Playground.Server {
 
                         var result = go.AddComponent<AirXRPlaygroundParticipant>();
                         result.userID = userID;
+                        result.clientID = extensionClientID;
 
                         return result;
                     }
@@ -126,6 +133,10 @@ namespace onAirXR.Playground.Server {
                     break;
             }
             return null;
+        }
+
+        public void UpdateClientID(string id) {
+            clientID = id;
         }
 
         public void UpdateHeadPose(Vector3 position, Quaternion rotation) {

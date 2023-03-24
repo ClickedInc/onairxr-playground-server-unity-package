@@ -32,6 +32,14 @@ namespace onAirXR.Playground.Server {
         public override void InitAfterUpdate() {
             XRGeneralSettings.Instance.Manager.InitializeLoaderSync();
             XRGeneralSettings.Instance.Manager.StartSubsystems();
+
+            // TODO: just workaround. make cleaner.
+            if (AXRServer.instance.isOnStreaming) {
+                player.Activate(true);
+                owner.OnJoinParticipant(player);
+
+                owner.extension?.OnActivate();
+            }
         }
 
         public override void Cleanup() {
@@ -95,7 +103,7 @@ namespace onAirXR.Playground.Server {
             manager.PendInputPose((byte)AirXRPlaygroundParticipant.InputDevice.HeadTracker, (byte)AXRHeadTrackerControl.Pose,
                                   playerLocalToOwnerLocal.MultiplyPoint(player.cameraTransform.localPosition),
                                   playerLocalToOwnerLocal.rotation * player.cameraTransform.localRotation);
-
+            
             var battery = 0f;
             AXRServer.instance?.input?.TryGetFeatureValue(AXRInputDeviceID.HeadTracker, CommonUsages.batteryLevel, ref battery);
             manager.PendInputByteStream((byte)AirXRPlaygroundParticipant.InputDevice.HeadTracker, (byte)AXRHeadTrackerControl.Battery, (byte)Mathf.RoundToInt(battery * 100));
